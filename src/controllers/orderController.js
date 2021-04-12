@@ -41,7 +41,7 @@ module.exports = {
         for (let l = 0; l < products.length; l++) {
             let product = products[l];
 
-            await axios.get(`http://localhost:3000/products/${product.code}`).then(async (productResponse) => {
+            await axios.get(`${process.env.API_URL}/products/${product.code}`).then(async (productResponse) => {
                 let { code, p_name, price } = productResponse.data.product;
 
                 newProducts.push({ product: { code, p_name, price }, quantity: product.quantity });
