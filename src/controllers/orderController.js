@@ -1,120 +1,114 @@
-const mongoose = require('mongoose');
-const axios = require('axios');
-
-const Order = mongoose.model('Order');
+const { ObjectId } = require('mongodb');
+const { mongoClient } = require('../config/database');
 
 module.exports = {
-    async index(req, res) {
-        const orders = await Order.find();
+    async indexOrders(req, res) {
+        try {
+            await mongoClient.connect();
 
-        return res.json(orders);
-    },
+            const Database = mongoClient.db(`${process.env.MONGO_DATABASE}`);
+            const Order = Database.collection('Order');
 
-    async clientOrders(req, res) {
-        const { client } = req.query;
+            const orders = [];
+            await Order.find().forEach(p => orders.push(p));
 
-        const orders = await Order.find({ clientId: client });
-
-        return res.json(orders);
-    },
-
-    async show(req, res) {
-        const { id } = req.params;
-
-        const order = await Order.findById(id);
-
-        if (!order) {
-            return res.status(404).send("Pedido não encontrado");
-        }
-
-        return res.json(order);
-    },
-
-    async store(req, res) {
-        let order = req.body;
-
-        let newProducts = [];
-        order.amount = 0.00;
-
-        let products = order.products;
-
-        for (let l = 0; l < products.length; l++) {
-            let product = products[l];
-
-            await axios.get(`${process.env.API_URL}/products/${product.code}`).then(async (productResponse) => {
-                let { code, p_name, price } = productResponse.data.product;
-
-                newProducts.push({ product: { code, p_name, price }, quantity: product.quantity });
-                order.amount += price * product.quantity;
-            }, (error) => {
-                return res.status(404).send("Produto não encontrado no banco");
-            });
-
-            if (l == products.length - 1) {
-                order.products = newProducts;
-
-                const createdOrder = await Order.create(order);
-
-                return res.status(201).json(createdOrder);
-            }
+            return res.json(orders);
+        } catch (error) {
+            console.log(error);
         }
     },
 
-    async update(req, res) {
-        const { id } = req.params;
+    async showClientOrders(req, res) {
+        try {
+            await mongoClient.connect();
 
-        if (req.body.products) {
+            const Database = mongoClient.db(`${process.env.MONGO_DATABASE}`);
+            const Order = Database.collection('Order');
 
-            const { products } = req.body;
+            const orders = [];
+            const { cpf } = req.params;
+            await Order.find({ cpfClient: cpf }).forEach(p => orders.push(p));
 
-            let newProducts = [];
-            req.body.amount = 0.00;
+            return res.json(orders);
+        } catch (error) {
+            console.log(error);
+        }
+    },
 
-            for (let l = 0; l < products.length; l++) {
-                let product = products[l];
+    async showOrder(req, res) {
+        try {
+            await mongoClient.connect();
 
-                await axios.get(`http://localhost:3000/products/${product.code}`).then(async (productResponse) => {
-                    let { code, p_name, price } = productResponse.data.product;
+            const Database = mongoClient.db(`${process.env.MONGO_DATABASE}`);
+            const Order = Database.collection('Order');
 
-                    newProducts.push({ product: { code, p_name, price }, quantity: product.quantity });
-                    req.body.amount += price * product.quantity;
-                }, (error) => {
-                    return res.status(404).send("Produto não encontrado no banco");
-                });
-
-                if (l == products.length - 1) {
-                    req.body.products = newProducts;
-
-                    const order = await Order.findByIdAndUpdate(id, req.body, { new: true });
-
-                    if (!order) {
-                        return res.status(404).send("Pedido não encontrado");
-                    }
-
-                    return res.json(order);
+            const { cpf } = req.params;
+            await Order.findOne({ cpf }).then(async response => {
+                if (response) {
+                    return res.status(200).json(response);
                 }
-            }
-
+                return res.status(404).json(null);
+            });
+        } catch (error) {
+            console.log(error);
         }
-
-        const order = await Order.findByIdAndUpdate(id, req.body, { new: true });
-
-        if (!order) {
-            return res.status(404).send("Pedido não encontrado");
-        }
-
-        return res.json(order);
     },
 
-    async destroy(req, res) {
-        const { id } = req.params;
+    async createOrder(req, res) {
+        try {
+            await mongoClient.connect();
 
-        const order = await Order.findByIdAndRemove(id);
+            const Database = mongoClient.db(`${process.env.MONGO_DATABASE}`);
+            const Order = Database.collection('Order');
 
-        if (!order) {
-            return res.status(404).send("Pedido não encontrado");
+            const { body } = req;
+            await Order.insertOne(body).then(async response => {
+                if (response.ops[0]) {
+                    return res.status(201).json(response);
+                }
+                return res.status(400).json(null);
+            });
+        } catch (error) {
+            console.log(error);
         }
+    },
 
-        return res.send();
-    }
-};
+    async updateOrder(req, res) {
+        try {
+            await mongoClient.connect();
+
+            const Database = mongoClient.db(`${process.env.MONGO_DATABASE}`);
+            const Order = Database.collection('Order');
+
+            const { id } = req.params;
+            const { body } = req;
+            await Order.updateOne({ _id: new ObjectId(id) }, { $set: body }).then(async response => {
+                if (response.matchedCount == 0) {
+                    return res.status(404).send();
+                }
+                return res.status(200).send();
+            });
+        } catch (error) {
+            console.log(error);
+        }
+    },
+
+    async deleteOrder(req, res) {
+        try {
+            await mongoClient.connect();
+
+            const Database = mongoClient.db(`${process.env.MONGO_DATABASE}`);
+            const Order = Database.collection('Order');
+
+            const { id } = req.params;
+            await Order.deleteOne({ _id: new ObjectId(id) }).then(async response => {
+                if (response.deletedCount == 0) {
+                    return res.status(404).send();
+                }
+                return res.status(200).send();
+            });
+        } catch (error) {
+            console.log(error);
+        }
+    },
+}

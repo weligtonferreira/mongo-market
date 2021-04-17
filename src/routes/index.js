@@ -1,21 +1,30 @@
 const express = require('express');
-const routes = express.Router();
+
+const productController = require('../controllers/productController');
 const clientController = require('../controllers/clientController');
 const orderController = require('../controllers/orderController');
 
+const router = express.Router();
+
 // ==> Rotas da API
 
-routes.get('/clients', clientController.index);
-routes.get('/clients/:id', clientController.show);
-routes.post('/clients', clientController.store);
-routes.put('/clients/:id', clientController.update);
-routes.delete('/clients/:id', clientController.destroy);
+router.get('/products', productController.indexProducts);
+router.get('/products/:id', productController.showProduct);
+router.post('/products', productController.createProduct);
+router.put('/products/:id', productController.updateProduct);
+router.delete('/products/:id', productController.deleteProduct);
 
-routes.get('/orders', orderController.index);
-routes.get('/clientOrders', orderController.clientOrders);
-routes.get('/orders/:id', orderController.show);
-routes.post('/orders', orderController.store);
-routes.put('/orders/:id', orderController.update);
-routes.delete('/orders/:id', orderController.destroy);
+router.get('/clients', clientController.indexClients);
+router.get('/clients/:cpf', clientController.showClient);
+router.post('/clients', clientController.createClient);
+router.put('/clients/:cpf', clientController.updateClient);
+router.delete('/clients/:cpf', clientController.deleteClient);
 
-module.exports = routes;
+router.get('/orders', orderController.indexOrders);
+router.get('/clientOrders/:cpf', orderController.showClientOrders);
+router.get('/orders/:id', orderController.showOrder);
+router.post('/orders', orderController.createOrder);
+router.put('/orders/:id', orderController.updateOrder);
+router.delete('/orders/:id', orderController.deleteOrder);
+
+module.exports = router;
