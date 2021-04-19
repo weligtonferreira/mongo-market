@@ -1,6 +1,7 @@
 const { ObjectId } = require('mongodb');
-const { amount } = require('../functions');
-const { mongoClient } = require('../config/database');
+const { sumProducts } = require('../functions');
+const { updateProduct } = require('./productController');
+const { mongoClient, query } = require('../config/database');
 
 module.exports = {
 
@@ -65,38 +66,34 @@ module.exports = {
 
             const { body } = req;
 
-            body.amount = amount(body.products);
+            body.amount = sumProducts(body.products);
+
+            body.products.map(async product => {
+                await query(
+                    'SELECT quantity FROM product WHERE id = $1',
+                    [product.id]
+                ).then(async (response) => {
+                    if (response.rows[0]) {
+                        let productResponse = response.rows[0];
+                        
+                        if (productResponse.quantity >= product.quantity) {
+                            
+                            let totalQuantity = productResponse.quantity - product.quantity;
+                            
+                            await query(
+                                'UPDATE product SET quantity = $1 WHERE id = $2',
+                                [totalQuantity, product.id]
+                            );
+                        }
+                    }
+                });
+            });
             
             await Order.insertOne(body).then(async response => {
                 if (response.ops[0]) {
                     return res.status(201).json(response);
                 }
                 return res.status(400).json(null);
-            });
-        } catch (error) {
-            console.log(error);
-        }
-    },
-
-    async updateOrder(req, res) {
-        try {
-            await mongoClient.connect();
-
-            const Database = mongoClient.db(`${process.env.MONGO_DATABASE}`);
-            const Order = Database.collection('Order');
-
-            const { id } = req.params;
-            const { body } = req;
-
-            if (body.products) {
-                body.amount = amount(body.products);
-            }
-
-            await Order.updateOne({ _id: new ObjectId(id) }, { $set: body }).then(async response => {
-                if (response.matchedCount == 0) {
-                    return res.status(404).send();
-                }
-                return res.status(200).send();
             });
         } catch (error) {
             console.log(error);

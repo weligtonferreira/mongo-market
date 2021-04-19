@@ -24,7 +24,6 @@ router.get('/orders', orderController.indexOrders);
 router.get('/clientOrders/:cpf', orderController.showClientOrders);
 router.get('/orders/:id', orderController.showOrder);
 router.post('/orders', orderController.createOrder);
-router.put('/orders/:id', orderController.updateOrder);
 router.delete('/orders/:id', orderController.deleteOrder);
 
 module.exports = router;
