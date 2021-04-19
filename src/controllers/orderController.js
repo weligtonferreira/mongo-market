@@ -1,7 +1,9 @@
 const { ObjectId } = require('mongodb');
+const { amount } = require('../functions');
 const { mongoClient } = require('../config/database');
 
 module.exports = {
+
     async indexOrders(req, res) {
         try {
             await mongoClient.connect();
@@ -62,6 +64,9 @@ module.exports = {
             const Order = Database.collection('Order');
 
             const { body } = req;
+
+            body.amount = amount(body.products);
+            
             await Order.insertOne(body).then(async response => {
                 if (response.ops[0]) {
                     return res.status(201).json(response);
@@ -82,6 +87,11 @@ module.exports = {
 
             const { id } = req.params;
             const { body } = req;
+
+            if (body.products) {
+                body.amount = amount(body.products);
+            }
+
             await Order.updateOne({ _id: new ObjectId(id) }, { $set: body }).then(async response => {
                 if (response.matchedCount == 0) {
                     return res.status(404).send();
