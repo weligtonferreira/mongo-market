@@ -1,6 +1,5 @@
 const { ObjectId } = require('mongodb');
 const { sumProducts } = require('../functions');
-const { updateProduct } = require('./productController');
 const { mongoClient, query } = require('../config/database');
 
 module.exports = {
@@ -45,8 +44,8 @@ module.exports = {
             const Database = mongoClient.db(`${process.env.MONGO_DATABASE}`);
             const Order = Database.collection('Order');
 
-            const { cpf } = req.params;
-            await Order.findOne({ cpf }).then(async response => {
+            const { id } = req.params;
+            await Order.findOne({ _id: new ObjectId(id) }).then(async response => {
                 if (response) {
                     return res.status(200).json(response);
                 }
